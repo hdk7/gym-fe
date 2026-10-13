@@ -1,0 +1,426 @@
+/* eslint-disable max-lines */
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate, NavLink } from "react-router-dom";
+import {
+  LogOut,
+  AlertTriangle,
+  ChevronRight,
+  LayoutDashboard,
+  Inbox,
+  Users,
+  ClipboardCheck,
+  Wallet,
+  Database,
+  CalendarDays,
+} from "lucide-react";
+import { STORAGE_KEYS } from "@/config/storageKeys";
+
+const navConfig = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
+  { id: "inquiries", label: "Inquiries", icon: Inbox, path: "/admin/inquiries" },
+  {
+    id: "trainers-members",
+    label: "Trainers & Members",
+    icon: Users,
+    children: [
+      { id: "member-list", label: "Members", path: "/admin/trainers-members/members" },
+      { id: "trainer-list", label: "Trainers", path: "/admin/trainers-members/trainers" },
+    ],
+  },
+  {
+    id: "schedule",
+    label: "Schedule",
+    icon: CalendarDays,
+    children: [
+      { id: "batch-schedule", label: "Batch Schedule", path: "/admin/schedule/batches" },
+      {
+        id: "master-class-schedule",
+        label: "Class Schedule",
+        path: "/admin/schedule/master-class",
+      },
+    ],
+  },
+  {
+    id: "attendance",
+    label: "Attendance",
+    icon: ClipboardCheck,
+    children: [
+      { id: "members-attendance", label: "Members Attendance", path: "/admin/attendance/members" },
+      {
+        id: "trainers-attendance",
+        label: "Trainers Attendance",
+        path: "/admin/attendance/trainers",
+      },
+    ],
+  },
+  {
+    id: "payments",
+    label: "Payments",
+    icon: Wallet,
+    children: [
+      { id: "members", label: "Members Payments", path: "/admin/payments/members" },
+      { id: "trainers", label: "Trainers Payments", path: "/admin/payments/trainers" },
+    ],
+  },
+  {
+    id: "masters",
+    label: "Masters",
+    icon: Database,
+    children: [
+      {
+        id: "membership-plan",
+        label: "Membership Plan",
+        path: "/admin/masters/membership-plan",
+      },
+      {
+        id: "attendance-policy",
+        label: "Attendance Policy",
+        path: "/admin/masters/attendance-policy",
+      },
+      { id: "payment-fee", label: "Payment Fee Master", path: "/admin/masters/payment-fee" },
+      { id: "portfolio-master", label: "Portfolio Master", path: "/admin/masters/portfolio" },
+    ],
+  },
+];
+
+function findNavItemByPath(pathname) {
+  for (const top of navConfig) {
+    if (top.path === pathname || (top.path && pathname.startsWith(`${top.path}/`))) {
+      return { top, child: undefined };
+    }
+    const child = top.children?.find(
+      (c) =>
+        c.path === pathname ||
+        pathname.startsWith(`${c.path}/`) ||
+        (c.id === "batch-schedule" &&
+          (pathname === "/admin/batches" ||
+            pathname.startsWith("/admin/batches/") ||
+            pathname === "/admin/schedule/batches" ||
+            pathname.startsWith("/admin/schedule/batches/"))) ||
+        (c.id === "master-class-schedule" &&
+          (pathname === "/admin/masters/schedule" ||
+            pathname === "/admin/schedule/master-class" ||
+            pathname.startsWith("/admin/schedule/master-class/") ||
+            pathname === "/admin/schedule/classes" ||
+            pathname === "/admin/schedule/class" ||
+            pathname === "/admin/schedule/class-schedule" ||
+            pathname === "/admin/schedule/sessions")) ||
+        (c.id === "attendance-policy" &&
+          (pathname === "/admin/masters/holiday" || pathname === "/admin/schedule/holidays")),
+    );
+    if (child) return { top, child };
+  }
+  return undefined;
+}
+
+const itemBase =
+  "group relative flex items-center gap-3 w-full py-2.5 px-3 border border-transparent rounded-xl text-muted-foreground text-sm no-underline cursor-pointer text-left hover:bg-muted hover:text-foreground transition-all duration-150";
+const itemActive = "bg-primary/10 border-primary/25 text-foreground font-bold shadow-xs";
+
+function isSubmoduleActive(child, currentPath) {
+  if (currentPath === child.path || (child.path && currentPath.startsWith(`${child.path}/`))) {
+    return true;
+  }
+  if (child.id === "batch-schedule") {
+    return (
+      currentPath === "/admin/batches" ||
+      currentPath.startsWith("/admin/batches/") ||
+      currentPath === "/admin/schedule/batches" ||
+      currentPath.startsWith("/admin/schedule/batches/")
+    );
+  }
+  if (child.id === "master-class-schedule") {
+    return (
+      currentPath === "/admin/schedule/master-class" ||
+      currentPath.startsWith("/admin/schedule/master-class/") ||
+      currentPath === "/admin/schedule/classes" ||
+      currentPath === "/admin/schedule/class" ||
+      currentPath === "/admin/schedule/class-schedule" ||
+      currentPath === "/admin/schedule/sessions" ||
+      currentPath === "/admin/masters/schedule"
+    );
+  }
+  if (child.id === "attendance-policy") {
+    return (
+      currentPath === "/admin/masters/holiday" ||
+      currentPath === "/admin/schedule/holidays"
+    );
+  }
+  return false;
+}
+
+function SidebarNavItem({
+  item,
+  isCollapsed,
+  isGroupOpen,
+  isGroupActive,
+  onToggleGroup,
+  currentPath,
+}) {
+  const Icon = item.icon;
+  const paddingClass = isCollapsed ? "justify-center px-0" : "px-3";
+
+  if (item.path) {
+    return (
+      <NavLink
+        to={item.path}
+        className={({ isActive }) =>
+          `${itemBase} ${paddingClass}${isActive ? ` ${itemActive}` : ""}`
+        }
+        title={isCollapsed ? item.label : undefined}
+      >
+        {({ isActive }) => (
+          <>
+            <span
+              className={`shrink-0 transition-colors ${
+                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              }`}
+            >
+              <Icon size={18} />
+            </span>
+            {!isCollapsed && (
+              <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                {item.label}
+              </span>
+            )}
+            {isActive && !isCollapsed && (
+              <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+            )}
+          </>
+        )}
+      </NavLink>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        className={`${itemBase} ${paddingClass}${
+          isGroupActive
+            ? " bg-primary/10 border-primary/20 text-foreground font-bold shadow-xs"
+            : ""
+        }`}
+        onClick={() => onToggleGroup(item)}
+        title={isCollapsed ? item.label : undefined}
+      >
+        <span
+          className={`shrink-0 transition-colors ${
+            isGroupActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+          }`}
+        >
+          <Icon size={18} />
+        </span>
+        {!isCollapsed && (
+          <>
+            <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+              {item.label}
+            </span>
+            <ChevronRight
+              className={`shrink-0 transition-transform duration-150 ${
+                isGroupOpen ? "rotate-90" : ""
+              } ${isGroupActive ? "text-primary" : "text-muted-foreground"}`}
+              size={16}
+            />
+          </>
+        )}
+      </button>
+      {!isCollapsed && isGroupOpen && (
+        <ul className="list-none my-0.5 mb-1 p-0 flex flex-col gap-0.5">
+          {item.children?.map((child) => (
+            <li key={child.id}>
+              <NavLink
+                to={child.path}
+                className={({ isActive }) => {
+                  const isCurrentActive = isActive || isSubmoduleActive(child, currentPath);
+                  return `flex items-center justify-between px-3 py-2 pl-9 ml-2.5 border-l-2 text-[13px] no-underline rounded-r-xl transition-all duration-150 ${
+                    isCurrentActive
+                      ? "border-primary bg-primary/15 text-foreground font-bold shadow-xs"
+                      : "border-border/60 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
+                  }`;
+                }}
+              >
+                {({ isActive }) => {
+                  const isCurrentActive = isActive || isSubmoduleActive(child, currentPath);
+                  return (
+                    <>
+                      <span className="truncate">{child.label}</span>
+                      {isCurrentActive && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0 mr-1" />
+                      )}
+                    </>
+                  );
+                }}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function SignOutModal({ open, onClose, onConfirm }) {
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/25 dark:bg-black/55 backdrop-blur-[1.5px] animate-in fade-in duration-150"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="w-full max-w-sm p-6 bg-white dark:bg-card border border-slate-200/90 dark:border-border rounded-2xl shadow-2xl text-center relative z-10 animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
+          <AlertTriangle size={24} />
+        </div>
+        <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-foreground mb-2">
+          Sign out confirmation
+        </h3>
+        <p className="text-sm text-slate-500 dark:text-muted-foreground mb-6 leading-relaxed">
+          Are you sure you want to sign out? You will need to enter your credentials again to access
+          the admin panel.
+        </p>
+        <div className="flex gap-3 justify-center">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-border bg-white dark:bg-card text-slate-700 dark:text-foreground text-sm font-semibold hover:bg-slate-100 dark:hover:bg-muted transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-destructive hover:bg-destructive/90 text-white text-sm font-semibold transition-colors cursor-pointer shadow-md"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Sidebar({
+  collapsed,
+  mobileOpen = false,
+  onMobileClose,
+  isMobile = false,
+}) {
+  const isCollapsed = isMobile ? false : collapsed;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const [openGroupId, setOpenGroupId] = useState(() => {
+    const match = findNavItemByPath(location.pathname);
+    return match?.child ? match.top.id : null;
+  });
+
+  useEffect(() => {
+    const match = findNavItemByPath(location.pathname);
+    if (match?.child) {
+      setOpenGroupId(match.top.id);
+    }
+  }, [location.pathname]);
+
+  const activeMatch = findNavItemByPath(location.pathname);
+
+  const toggleGroup = (item) => {
+    const isAlreadyOpen = openGroupId === item.id;
+    setOpenGroupId(isAlreadyOpen ? null : item.id);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+    sessionStorage.clear();
+    onMobileClose?.();
+    navigate("/admin/login", { replace: true });
+  };
+
+  return (
+    <>
+      <aside
+        className={[
+          "flex flex-col bg-card border border-border rounded-xl overflow-hidden",
+          "fixed top-18.5 bottom-3 left-3",
+          "w-(--sidebar-width,256px) z-50 shadow-xl transition-transform duration-250 ease-in-out",
+          mobileOpen ? "translate-x-0" : "-translate-x-[calc(100%+24px)]",
+          "md:z-20 md:shadow-sm md:translate-x-0",
+          "md:transition-[width] md:duration-200 md:ease-in-out",
+          isCollapsed
+            ? "md:w-(--sidebar-width-collapsed,72px)"
+            : "md:w-(--sidebar-width,256px)",
+        ].join(" ")}
+      >
+        <nav
+          className="flex-1 overflow-y-auto py-2 px-3 flex flex-col gap-0.5"
+          onClick={(e) => {
+            if (mobileOpen && e.target.closest("a")) onMobileClose?.();
+          }}
+        >
+          {navConfig.map((item) => (
+            <SidebarNavItem
+              key={item.id}
+              item={item}
+              isCollapsed={isCollapsed}
+              isGroupOpen={openGroupId === item.id}
+              isGroupActive={activeMatch?.top.id === item.id && Boolean(activeMatch.child)}
+              onToggleGroup={toggleGroup}
+              currentPath={location.pathname}
+            />
+          ))}
+        </nav>
+
+        <div className={`border-t border-border p-2.5 ${isCollapsed ? "flex justify-center" : ""}`}>
+          {isCollapsed ? (
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="flex items-center justify-center w-10 h-10 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer border-none bg-transparent"
+              title="Sign out - End session"
+              aria-label="Sign out"
+            >
+              <LogOut size={18} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="w-full flex items-center gap-3 p-2 px-2.5 rounded-lg text-muted-foreground hover:bg-destructive/10 transition-colors cursor-pointer group text-left border-none bg-transparent"
+              aria-label="Sign out"
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-destructive/10 text-destructive group-hover:bg-destructive group-hover:text-white transition-colors shrink-0">
+                <LogOut size={16} />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1 leading-tight">
+                <span className="text-[14px] font-semibold text-foreground group-hover:text-destructive transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
+                  Sign Out
+                </span>
+              </div>
+            </button>
+          )}
+        </div>
+      </aside>
+
+      <SignOutModal
+        open={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+      />
+    </>
+  );
+}
