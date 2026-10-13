@@ -1,6 +1,7 @@
 import { ApiError } from "@/lib/apiClient";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+const RAW_API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 // Re-exported so LoginPage can show the demo credentials hint in the UI.
 // DEMO_MODE is now always false — the backend is live.
@@ -25,7 +26,8 @@ export async function loginAdmin({ email, password }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-  } catch {
+  } catch (err) {
+    console.error(`[Auth Network Error] POST ${API_BASE_URL}/v1/auth/login:`, err);
     throw new ApiError(
       "Unable to reach the server. Check your connection and try again.",
       0,
@@ -67,7 +69,8 @@ export async function forgotPassword(email) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
     });
-  } catch {
+  } catch (err) {
+    console.error(`[Auth Network Error] POST ${API_BASE_URL}/v1/auth/forgot-password:`, err);
     throw new ApiError(
       "Unable to reach the server. Check your connection and try again.",
       0,

@@ -10,7 +10,8 @@
 
 import { STORAGE_KEYS } from "@/config/storageKeys";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+const BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 
 // ── Error class ────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,7 @@ async function request(method, path, body, options = {}) {
       signal: options.signal,
     });
   } catch (networkError) {
+    console.error(`[API Network Error] ${method} ${BASE_URL}${path}:`, networkError);
     throw new ApiError(
       "Unable to reach the server. Check your connection and try again.",
       0,
