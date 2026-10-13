@@ -6,7 +6,7 @@ const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 // Re-exported so LoginPage can show the demo credentials hint in the UI.
 // DEMO_MODE is now always false — the backend is live.
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
-export const DEMO_CREDENTIALS = { email: "admin@thestrengthway.com", password: "Admin@12345" };
+export const DEMO_CREDENTIALS = { email: "admin@strengthway.com", password: "Admin@2026" };
 
 // Re-export ApiError under the legacy name so imports in LoginPage keep working.
 export { ApiError as AuthError };

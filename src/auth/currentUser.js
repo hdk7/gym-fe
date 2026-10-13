@@ -3,7 +3,7 @@ import { STORAGE_KEYS } from "@/config/storageKeys";
 const CURRENT_USER = {
   name: "StrengthWay",
   role: "Administrator",
-  email: "admin@thestrengthway.com",
+  email: "admin@strengthway.com",
 };
 
 export function getCurrentUser() {

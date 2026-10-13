@@ -81,7 +81,7 @@ export function LoginForm({ onSuccess }) {
         type="email"
         name="email"
         autoComplete="username"
-        placeholder="you@thestrengthway.com"
+        placeholder="admin@strengthway.com"
         value={form.email}
         onChange={handleChange("email")}
         onBlur={handleBlur("email")}
